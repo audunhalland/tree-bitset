@@ -7,11 +7,12 @@ pub trait JoinOp<T: Bits> {
 pub struct Union;
 
 impl<T: Bits> JoinOp<T> for Union {
+    #[inline]
     fn join(input: Join<T>) -> T {
         match input {
-            Join::AB(a, b) => a | b,
-            Join::A(a) => a,
-            Join::B(b) => b,
+            Join::PQ(p, q) => p | q,
+            Join::P(p) => p,
+            Join::Q(q) => q,
         }
     }
 }
@@ -19,10 +20,24 @@ impl<T: Bits> JoinOp<T> for Union {
 pub struct Intersection;
 
 impl<T: Bits> JoinOp<T> for Intersection {
+    #[inline]
     fn join(input: Join<T>) -> T {
         match input {
-            Join::AB(a, b) => a & b,
-            Join::A(_) | Join::B(_) => T::ZERO,
+            Join::PQ(p, q) => p & q,
+            Join::P(_) | Join::Q(_) => T::ZERO,
+        }
+    }
+}
+
+pub struct Difference;
+
+impl<T: Bits> JoinOp<T> for Difference {
+    #[inline]
+    fn join(input: Join<T>) -> T {
+        match input {
+            Join::PQ(p, q) => p & !q,
+            Join::P(p) => p,
+            Join::Q(_) => T::ZERO,
         }
     }
 }

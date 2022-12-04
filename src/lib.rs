@@ -67,20 +67,29 @@ impl<T: Bits> TreeBitSet<T> {
         RefIterator { raw, bucket_iter }
     }
 
-    pub fn union<'o>(&self, other: &'o TreeBitSet<T>) -> Union<'_, 'o, T> {
+    pub fn union<'q>(&self, q: &'q TreeBitSet<T>) -> Union<'_, 'q, T> {
         Union {
             join_iter: BitJoinIterator::new(
-                BucketJoinIterator::new(self.buckets.iter(), other.buckets.iter()),
+                BucketJoinIterator::new(self.buckets.iter(), q.buckets.iter()),
                 op::Union,
             ),
         }
     }
 
-    pub fn intersection<'o>(&self, other: &'o TreeBitSet<T>) -> Intersection<'_, 'o, T> {
+    pub fn intersection<'q>(&self, q: &'q TreeBitSet<T>) -> Intersection<'_, 'q, T> {
         Intersection {
             join_iter: BitJoinIterator::new(
-                BucketJoinIterator::new(self.buckets.iter(), other.buckets.iter()),
+                BucketJoinIterator::new(self.buckets.iter(), q.buckets.iter()),
                 op::Intersection,
+            ),
+        }
+    }
+
+    pub fn difference<'q>(&self, q: &'q TreeBitSet<T>) -> Difference<'_, 'q, T> {
+        Difference {
+            join_iter: BitJoinIterator::new(
+                BucketJoinIterator::new(self.buckets.iter(), q.buckets.iter()),
+                op::Difference,
             ),
         }
     }
@@ -117,11 +126,11 @@ impl<T: Bits> Debug for TreeBitSet<T> {
     }
 }
 
-pub struct Union<'a, 'b, T: Bits> {
-    join_iter: BitJoinIterator<'a, 'b, T, op::Union>,
+pub struct Union<'p, 'q, T: Bits> {
+    join_iter: BitJoinIterator<'p, 'q, T, op::Union>,
 }
 
-impl<'a, 'b, T: Bits> Iterator for Union<'a, 'b, T> {
+impl<'p, 'q, T: Bits> Iterator for Union<'p, 'q, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -129,11 +138,23 @@ impl<'a, 'b, T: Bits> Iterator for Union<'a, 'b, T> {
     }
 }
 
-pub struct Intersection<'a, 'b, T: Bits> {
-    join_iter: BitJoinIterator<'a, 'b, T, op::Intersection>,
+pub struct Intersection<'p, 'q, T: Bits> {
+    join_iter: BitJoinIterator<'p, 'q, T, op::Intersection>,
 }
 
-impl<'a, 'b, T: Bits> Iterator for Intersection<'a, 'b, T> {
+impl<'p, 'q, T: Bits> Iterator for Intersection<'p, 'q, T> {
+    type Item = T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.join_iter.next()
+    }
+}
+
+pub struct Difference<'p, 'q, T: Bits> {
+    join_iter: BitJoinIterator<'p, 'q, T, op::Difference>,
+}
+
+impl<'p, 'q, T: Bits> Iterator for Difference<'p, 'q, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -280,5 +301,15 @@ mod tests {
         let intersection = TreeBitSet::from(a.intersection(&b));
 
         assert_eq!(TreeBitSet::from([400, 500]), intersection);
+    }
+
+    #[test]
+    fn difference() {
+        let a = TreeBitSet::<u64>::from([100, 200, 300, 400, 500]);
+        let b = TreeBitSet::<u64>::from([400, 500, 600, 700]);
+
+        let intersection = TreeBitSet::from(a.difference(&b));
+
+        assert_eq!(TreeBitSet::from([100, 200, 300]), intersection);
     }
 }

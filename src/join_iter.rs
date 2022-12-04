@@ -5,62 +5,62 @@ use crate::{
 };
 
 pub struct BucketJoinIterator<'a, 'b, T: Bits> {
-    a: RawRefIter<'a, T>,
-    b: RawRefIter<'b, T>,
-    bucket_a: Option<Bucket<T>>,
-    bucket_b: Option<Bucket<T>>,
+    p: RawRefIter<'a, T>,
+    q: RawRefIter<'b, T>,
+    bucket_p: Option<Bucket<T>>,
+    bucket_q: Option<Bucket<T>>,
 }
 
 impl<'a, 'b, T: Bits> BucketJoinIterator<'a, 'b, T> {
-    pub fn new(mut a: RawRefIter<'a, T>, mut b: RawRefIter<'b, T>) -> Self {
-        let bucket_a = next_bucket(&mut a);
-        let bucket_b = next_bucket(&mut b);
+    pub fn new(mut p: RawRefIter<'a, T>, mut q: RawRefIter<'b, T>) -> Self {
+        let bucket_p = next_bucket(&mut p);
+        let bucket_q = next_bucket(&mut q);
 
         Self {
-            a,
-            b,
-            bucket_a,
-            bucket_b,
+            p,
+            q,
+            bucket_p,
+            bucket_q,
         }
     }
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum Join<T: Bits> {
-    A(T),
-    B(T),
-    AB(T, T),
+    PQ(T, T),
+    P(T),
+    Q(T),
 }
 
 impl<'a, 'b, T: Bits> Iterator for BucketJoinIterator<'a, 'b, T> {
     type Item = (T, Join<T>);
 
     fn next(&mut self) -> Option<Self::Item> {
-        match (&mut self.bucket_a, &mut self.bucket_b) {
-            (Some(a), Some(b)) if a.base == b.base => {
-                let item = (a.base, Join::AB(a.bits, b.bits));
+        match (&mut self.bucket_p, &mut self.bucket_q) {
+            (Some(p), Some(q)) if p.base == q.base => {
+                let item = (p.base, Join::PQ(p.bits, q.bits));
 
-                self.bucket_a = next_bucket(&mut self.a);
-                self.bucket_b = next_bucket(&mut self.b);
+                self.bucket_p = next_bucket(&mut self.p);
+                self.bucket_q = next_bucket(&mut self.q);
 
                 Some(item)
             }
-            (Some(a), Some(b)) if a.base < b.base => {
-                let item = (a.base, Join::A(a.bits));
+            (Some(p), Some(q)) if p.base < q.base => {
+                let item = (p.base, Join::P(p.bits));
 
-                self.bucket_a = next_bucket(&mut self.a);
+                self.bucket_p = next_bucket(&mut self.p);
                 Some(item)
             }
-            (Some(a), None) => {
-                let item = (a.base, Join::A(a.bits));
+            (Some(p), None) => {
+                let item = (p.base, Join::P(p.bits));
 
-                self.bucket_a = next_bucket(&mut self.a);
+                self.bucket_p = next_bucket(&mut self.p);
                 Some(item)
             }
-            (_, Some(b)) => {
-                let item = (b.base, Join::B(b.bits));
+            (_, Some(q)) => {
+                let item = (q.base, Join::Q(q.bits));
 
-                self.bucket_b = next_bucket(&mut self.b);
+                self.bucket_q = next_bucket(&mut self.q);
                 Some(item)
             }
             (None, None) => None,
@@ -118,18 +118,18 @@ impl<'a, 'b, T: Bits, O: JoinOp<T>> Iterator for BitJoinIterator<'a, 'b, T, O> {
 fn joins_correctly() {
     use crate::*;
 
-    let a = TreeBitSet::from([1, 2, 64, 666]);
-    let b = TreeBitSet::from([3, 4, 333]);
+    let p = TreeBitSet::from([1, 2, 64, 666]);
+    let q = TreeBitSet::from([3, 4, 333]);
 
-    let iter = BucketJoinIterator::new(a.buckets.iter(), b.buckets.iter());
+    let iter = BucketJoinIterator::new(p.buckets.iter(), q.buckets.iter());
     let joins = iter.collect::<Vec<_>>();
 
     assert_eq!(
         vec![
-            (0_u64, Join::AB(1 << 1 | 1 << 2, 1 << 3 | 1 << 4)),
-            (64, Join::A(1 << 0)),
-            (320, Join::B(1 << 13)),
-            (640, Join::A(1 << 26))
+            (0_u64, Join::PQ(1 << 1 | 1 << 2, 1 << 3 | 1 << 4)),
+            (64, Join::P(1 << 0)),
+            (320, Join::Q(1 << 13)),
+            (640, Join::P(1 << 26))
         ],
         joins
     );
