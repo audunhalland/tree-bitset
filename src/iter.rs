@@ -4,6 +4,7 @@ use crate::Bits;
 
 pub type RawRefIter<'b, T> = <&'b BTreeMap<T, T> as IntoIterator>::IntoIter;
 
+#[inline]
 pub fn next_bucket<'b, T: Bits>(raw: &mut RawRefIter<'b, T>) -> Option<Bucket<T>> {
     raw.next().map(|(base, bits)| Bucket::new(*base, *bits))
 }
@@ -21,16 +22,15 @@ impl<'b, T: Bits> Iterator for RefIterator<'b, T> {
     type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        match &mut self.bucket_iter {
-            Some(bucket_iter) => match bucket_iter.next() {
-                Some(next) => Some(next),
+        while let Some(bucket_iter) = &mut self.bucket_iter {
+            match bucket_iter.next() {
+                Some(bit) => return Some(bit),
                 None => {
                     self.bucket_iter = next_bucket_iterator(&mut self.raw);
-                    self.next()
                 }
-            },
-            None => None,
+            }
         }
+        None
     }
 }
 

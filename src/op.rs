@@ -1,43 +1,43 @@
-use crate::{join_iter::Join, Bits};
+use crate::{combination_iter::Combination, Bits};
 
-pub trait JoinOp<T: Bits> {
-    fn join(input: Join<T>) -> T;
+pub trait CombineOp<T: Bits> {
+    fn combine(input: Combination<T>) -> T;
 }
 
 pub struct Union;
 
-impl<T: Bits> JoinOp<T> for Union {
+impl<T: Bits> CombineOp<T> for Union {
     #[inline]
-    fn join(input: Join<T>) -> T {
+    fn combine(input: Combination<T>) -> T {
         match input {
-            Join::PQ(p, q) => p | q,
-            Join::P(p) => p,
-            Join::Q(q) => q,
+            Combination::PQ(p, q) => p | q,
+            Combination::P(p) => p,
+            Combination::Q(q) => q,
         }
     }
 }
 
 pub struct Intersection;
 
-impl<T: Bits> JoinOp<T> for Intersection {
+impl<T: Bits> CombineOp<T> for Intersection {
     #[inline]
-    fn join(input: Join<T>) -> T {
+    fn combine(input: Combination<T>) -> T {
         match input {
-            Join::PQ(p, q) => p & q,
-            Join::P(_) | Join::Q(_) => T::ZERO,
+            Combination::PQ(p, q) => p & q,
+            Combination::P(_) | Combination::Q(_) => T::ZERO,
         }
     }
 }
 
 pub struct Difference;
 
-impl<T: Bits> JoinOp<T> for Difference {
+impl<T: Bits> CombineOp<T> for Difference {
     #[inline]
-    fn join(input: Join<T>) -> T {
+    fn combine(input: Combination<T>) -> T {
         match input {
-            Join::PQ(p, q) => p & !q,
-            Join::P(p) => p,
-            Join::Q(_) => T::ZERO,
+            Combination::PQ(p, q) => p & !q,
+            Combination::P(p) => p,
+            Combination::Q(_) => T::ZERO,
         }
     }
 }
