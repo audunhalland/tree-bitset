@@ -1,14 +1,17 @@
-use crate::iter::{next_group, Group, RawRefIter};
+use crate::{
+    iter::{next_group, Group, RawRefIter},
+    Bits,
+};
 
-pub struct JoinGroupIter<'a, 'b> {
-    a: RawRefIter<'a>,
-    b: RawRefIter<'b>,
-    a_group: Option<Group>,
-    b_group: Option<Group>,
+pub struct JoinGroupIter<'a, 'b, T: Bits> {
+    a: RawRefIter<'a, T>,
+    b: RawRefIter<'b, T>,
+    a_group: Option<Group<T>>,
+    b_group: Option<Group<T>>,
 }
 
-impl<'a, 'b> JoinGroupIter<'a, 'b> {
-    fn new(mut a: RawRefIter<'a>, mut b: RawRefIter<'b>) -> Self {
+impl<'a, 'b, T: Bits> JoinGroupIter<'a, 'b, T> {
+    fn new(mut a: RawRefIter<'a, T>, mut b: RawRefIter<'b, T>) -> Self {
         let a_group = next_group(&mut a);
         let b_group = next_group(&mut b);
 
@@ -22,14 +25,14 @@ impl<'a, 'b> JoinGroupIter<'a, 'b> {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub enum Join {
-    A(u64),
-    B(u64),
-    AB(u64, u64),
+pub enum Join<T: Bits> {
+    A(T),
+    B(T),
+    AB(T, T),
 }
 
-impl<'a, 'b> Iterator for JoinGroupIter<'a, 'b> {
-    type Item = (u64, Join);
+impl<'a, 'b, T: Bits> Iterator for JoinGroupIter<'a, 'b, T> {
+    type Item = (T, Join<T>);
 
     fn next(&mut self) -> Option<Self::Item> {
         match (&mut self.a_group, &mut self.b_group) {

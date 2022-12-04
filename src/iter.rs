@@ -1,26 +1,31 @@
 use std::collections::BTreeMap;
 
-pub type RawRefIter<'b> = <&'b BTreeMap<u64, u64> as IntoIterator>::IntoIter;
+use crate::Bits;
 
-pub fn next_group<'b>(raw: &mut RawRefIter<'b>) -> Option<Group> {
+pub type RawRefIter<'b, T: Bits> = <&'b BTreeMap<T, T> as IntoIterator>::IntoIter;
+
+pub fn next_group<'b, T: Bits>(raw: &mut RawRefIter<'b, T>) -> Option<Group<T>> {
     raw.next().map(|(base, bits)| Group {
         base: *base,
         bits: *bits,
     })
 }
 
-pub fn next_group_iter<'b>(raw: &mut RawRefIter<'b>) -> Option<GroupIterator> {
+pub fn next_group_iter<'b, T: Bits>(raw: &mut RawRefIter<'b, T>) -> Option<GroupIterator<T>> {
     let group = next_group(raw)?;
-    Some(GroupIterator { group, index: 0 })
+    Some(GroupIterator {
+        group,
+        index: T::ZERO,
+    })
 }
 
-pub struct RefIterator<'b> {
-    pub raw: RawRefIter<'b>,
-    pub group_iter: Option<GroupIterator>,
+pub struct RefIterator<'b, T: Bits> {
+    pub raw: RawRefIter<'b, T>,
+    pub group_iter: Option<GroupIterator<T>>,
 }
 
-impl<'b> Iterator for RefIterator<'b> {
-    type Item = u64;
+impl<'b, T: Bits> Iterator for RefIterator<'b, T> {
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         match &mut self.group_iter {
@@ -36,26 +41,30 @@ impl<'b> Iterator for RefIterator<'b> {
     }
 }
 
-pub struct Group {
-    pub base: u64,
-    pub bits: u64,
+pub struct Group<T> {
+    pub base: T,
+    pub bits: T,
 }
 
-pub struct GroupIterator {
-    group: Group,
-    index: u8,
+pub struct GroupIterator<T> {
+    group: Group<T>,
+    index: T,
 }
 
-impl Iterator for GroupIterator {
-    type Item = u64;
+impl<T: Bits> Iterator for GroupIterator<T> {
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         // TODO: Optimize:
-        for i in self.index..63 {
-            if self.group.bits & (1 << i) > 0 {
-                self.index = i + 1;
-                return Some(self.group.base + i as u64);
+        let mut i = self.index;
+
+        while i < T::MASK {
+            if self.group.bits & (T::ONE << i) > T::ZERO {
+                self.index = i + T::ONE;
+                return Some(self.group.base + i);
             }
+
+            i += T::ONE;
         }
 
         None
