@@ -148,6 +148,7 @@ pub trait Bits:
     + Ord
     + std::ops::BitAnd<Self, Output = Self>
     + std::ops::Shl<Output = Self>
+    + std::ops::Shr<Output = Self>
     + std::ops::BitOr<Output = Self>
     + std::ops::BitOrAssign
     + std::ops::BitAndAssign
@@ -160,24 +161,38 @@ pub trait Bits:
     const ZERO: Self;
     const ONE: Self;
     const MASK: Self;
+
+    fn trailing_zeros(self) -> Self;
 }
 
 impl Bits for u32 {
     const ZERO: u32 = 0;
     const ONE: u32 = 1;
     const MASK: u32 = 0x1f;
+
+    fn trailing_zeros(self) -> Self {
+        self.trailing_zeros()
+    }
 }
 
 impl Bits for u64 {
     const ZERO: u64 = 0;
     const ONE: u64 = 1;
     const MASK: u64 = 0x3f;
+
+    fn trailing_zeros(self) -> Self {
+        self.trailing_zeros() as Self
+    }
 }
 
 impl Bits for u128 {
     const ZERO: u128 = 0;
     const ONE: u128 = 1;
     const MASK: u128 = 0x7f;
+
+    fn trailing_zeros(self) -> Self {
+        self.trailing_zeros() as Self
+    }
 }
 
 #[cfg(test)]

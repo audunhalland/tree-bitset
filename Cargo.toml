@@ -1,5 +1,5 @@
 [package]
-name = "psycho-bitset"
+name = "tree-bitset"
 version = "0.1.0"
 edition = "2021"
 
