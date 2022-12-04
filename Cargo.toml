@@ -9,3 +9,8 @@ edition = "2021"
 
 [dev-dependencies]
 criterion = "0.3"
+bit-set = "0.5"
+
+[[bench]]
+name = "cmp"
+harness = false
