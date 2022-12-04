@@ -112,17 +112,19 @@ where
 
 impl<T: Bits> Debug for TreeBitSet<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{{")?;
-
-        let mut iterator = self.iter().peekable();
-        while let Some(bit) = iterator.next() {
-            write!(f, "{bit:?}")?;
-            if iterator.peek().is_some() {
-                write!(f, ", ")?;
-            }
+        let mut debug_set = f.debug_set();
+        for bit in self.iter() {
+            debug_set.entry(&bit);
         }
-        write!(f, "}}")?;
-        Ok(())
+        debug_set.finish()
+    }
+}
+
+impl<T: Bits> Extend<T> for TreeBitSet<T> {
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) {
+        for bit in iter {
+            self.insert(bit);
+        }
     }
 }
 
