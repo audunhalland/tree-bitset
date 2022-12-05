@@ -1,10 +1,12 @@
 use bit_set::BitSet;
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
+use roaring::RoaringBitmap;
 use tree_bitset::TreeBitSet;
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     let n_bits: u64 = 10000;
     let n_bits_usize: usize = n_bits as usize;
+    let n_bits_u32: u32 = n_bits.try_into().unwrap();
 
     c.bench_with_input(
         BenchmarkId::new("tree-bitset-set-bits", n_bits),
@@ -33,6 +35,19 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     );
 
     c.bench_with_input(
+        BenchmarkId::new("roaring-set-bits", n_bits_u32),
+        &n_bits_u32,
+        |b, n_bits| {
+            let mut bitmap = RoaringBitmap::new();
+            b.iter(|| {
+                for bit in 0..*n_bits {
+                    bitmap.insert(black_box(bit));
+                }
+            });
+        },
+    );
+
+    c.bench_with_input(
         BenchmarkId::new("tree-bitset-set-bits-sparse", n_bits),
         &n_bits,
         |b, n_bits| {
@@ -53,6 +68,19 @@ pub fn criterion_benchmark(c: &mut Criterion) {
             b.iter(|| {
                 for bit in 0..*n_bits {
                     bitset.insert(black_box(bit * 193));
+                }
+            });
+        },
+    );
+
+    c.bench_with_input(
+        BenchmarkId::new("roaring-set-bits-sparse", n_bits_u32),
+        &n_bits_u32,
+        |b, n_bits| {
+            let mut bitmap = RoaringBitmap::new();
+            b.iter(|| {
+                for bit in 0..*n_bits {
+                    bitmap.insert(black_box(bit * 193));
                 }
             });
         },

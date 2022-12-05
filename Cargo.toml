@@ -10,6 +10,7 @@ edition = "2021"
 [dev-dependencies]
 criterion = "0.3"
 bit-set = "0.5"
+roaring = "0.10"
 
 [[bench]]
 name = "cmp"
